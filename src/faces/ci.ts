@@ -153,7 +153,7 @@ function view(step: number, story: Story): View {
     }
     log.push(BLANK, L(['One job per compiler, the same suite in each.', 'd']));
     if (!story.fixed) log.push(L([`Case ${FAILURE.caseN} fails in all four: a defect, not a dialect.`, 'y']));
-    return { job: 'matrix', command: 'cobalto test --profile $PROFILE --junit build/junit.xml', log };
+    return { job: 'matrix', command: 'cobalto test --profile $PROFILE --junit junit.xml', log };
   }
   return {
     job: '',
