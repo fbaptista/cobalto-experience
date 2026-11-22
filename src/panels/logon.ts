@@ -74,7 +74,7 @@ export const logon: Panel = {
       s.put(20, 38, 'LOANCALC', 'g u');
       s.center(23, ' Press ENTER to start the session ', 'y', 'key:Enter');
       s.cursor(18, 43);
-      s.center(26, 'No account, no form. This site is a session of Cobalto.', 'd');
+      s.center(26, 'No account, no form. 100% Open Source.', 'd');
     }
   },
 
@@ -123,6 +123,6 @@ function renderNarrow(ctx: Ctx): void {
     s.cursor(22, 25);
     s.center(27, ' Tap to start the session ', 'y', 'key:Enter');
     s.center(31, 'No account, no form.', 'd');
-    s.center(32, 'This site is a session of Cobalto.', 'd');
+    s.center(32, '100% Open Source.', 'd');
   }
 }

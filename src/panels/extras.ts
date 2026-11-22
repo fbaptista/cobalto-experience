@@ -3,6 +3,20 @@ import { wrap } from '../term/screen';
 
 export const REPO_URL = 'https://github.com/abstracta/cobalto';
 
+/** Where the clickable fields that leave the session go. */
+export const LINKS: Record<string, string> = {
+  repo: REPO_URL,
+  marketplace: 'https://marketplace.visualstudio.com/items?itemName=abstracta.vscode-cobalto',
+  openvsx: 'https://open-vsx.org/extension/abstracta/vscode-cobalto',
+};
+
+const STEPS: [string, string][] = [
+  ['python3 -m pip install cobalto', 'install the CLI'],
+  ['cobalto init /path/to/my/project', 'set up a project and a first suite'],
+  ['cobalto suggest --program LOANCALC', 'ask AI for a draft suite, to review'],
+  ['cobalto test --coverage', 'run the suites, with coverage'],
+];
+
 export const install: Panel = {
   id: 'install',
   title: 'COBALTO - INSTALL',
@@ -12,22 +26,19 @@ export const install: Panel = {
     const top = ctx.top;
     s.put(top + 1, 3, 'QUICK START', 'w');
     s.put(top + 2, 3, 'Python 3.9 or later and a COBOL compiler. GnuCOBOL 3.x works out of the box.', 'b');
-    const steps: [string, string][] = [
-      ['python3 -m pip install cobalto', 'install the CLI'],
-      ['cobalto init /path/to/my/project', 'set up a project and a first suite'],
-      ['cobalto test --coverage', 'run the suites, with coverage'],
-      ['cobalto suggest --program LOANCALC', 'ask AI for a draft suite, to review'],
-    ];
-    steps.forEach(([cmd, what], i) => {
+    STEPS.forEach(([cmd, what], i) => {
       s.put(top + 4 + i * 2, 3, '>', 'b');
       s.put(top + 4 + i * 2, 5, cmd, 'w');
-      s.put(top + 4 + i * 2, 40, what, 'g');
+      s.put(top + 4 + i * 2, 42, what, 'g');
     });
     s.put(top + 13, 3, 'REPOSITORY', 'w');
     s.put(top + 14, 3, REPO_URL, 'y', 'open:repo');
-    s.put(top + 15, 3, 'Open source. Documentation, examples and the VS Code extension live there.', 'b');
-    s.put(top + 18, 3, 'Some of what this session shows is where Cobalto is heading,', 'd');
-    s.put(top + 19, 3, 'not what ships today. The repository says what is verified.', 'd');
+    s.put(top + 15, 3, 'Open source. Documentation and examples live there.', 'b');
+    s.put(top + 17, 3, 'EXTENSIONS', 'w');
+    s.put(top + 18, 3, 'VS Code', 'b');
+    s.put(top + 18, 12, 'Visual Studio Marketplace', 'y', 'open:marketplace');
+    s.put(top + 18, 40, 'Open VSX', 'y', 'open:openvsx');
+    s.put(top + 19, 12, 'abstracta.vscode-cobalto', 'g');
   },
   key(key: string) {
     if (key === 'Enter') {
@@ -75,13 +86,7 @@ function installNarrow(ctx: Ctx): void {
   s.put(row++, 1, 'QUICK START', 'w');
   for (const line of wrap('Python 3.9 or later and a COBOL compiler. GnuCOBOL 3.x works out of the box.', width)) s.put(row++, 1, line, 'b');
   row++;
-  const steps: [string, string][] = [
-    ['python3 -m pip install cobalto', 'install the CLI'],
-    ['cobalto init /path/to/my/project', 'set up a project and a first suite'],
-    ['cobalto test --coverage', 'run the suites, with coverage'],
-    ['cobalto suggest --program LOANCALC', 'ask AI for a draft suite, to review'],
-  ];
-  for (const [cmd, what] of steps) {
+  for (const [cmd, what] of STEPS) {
     s.put(row, 1, '>', 'b');
     s.put(row++, 3, cmd, 'w');
     s.put(row++, 3, what, 'g');
@@ -90,8 +95,10 @@ function installNarrow(ctx: Ctx): void {
   s.put(row++, 1, 'REPOSITORY', 'w');
   s.put(row++, 1, REPO_URL.replace('https://', ''), 'y', 'open:repo');
   row++;
-  const note = 'Some of what this session shows is where Cobalto is heading, not what ships today. The repository says what is verified.';
-  for (const line of wrap(note, width)) s.put(row++, 1, line, 'd');
+  s.put(row++, 1, 'EXTENSIONS', 'w');
+  s.put(row++, 1, 'VS Code: abstracta.vscode-cobalto', 'g');
+  s.put(row, 1, 'Visual Studio Marketplace', 'y', 'open:marketplace');
+  s.put(row, 29, 'Open VSX', 'y', 'open:openvsx');
 }
 
 function helpNarrow(ctx: Ctx): void {

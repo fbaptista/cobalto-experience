@@ -12,7 +12,7 @@ import { definePanel } from './panels/define';
 import { generatePanel } from './panels/generate';
 import { compilersPanel } from './panels/compilers';
 import { understandPanel } from './panels/understand';
-import { REPO_URL, help, install } from './panels/extras';
+import { LINKS, help, install } from './panels/extras';
 
 const monitor = document.getElementById('monitor')!;
 const screenEl = document.getElementById('screen')!;
@@ -21,8 +21,9 @@ app.add(logon, menu, understandPanel, definePanel, generatePanel, runPanel, vali
 
 // Clickable fields that leave the session.
 screenEl.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act="open:repo"]');
-  if (el) window.open(REPO_URL, '_blank', 'noopener');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act^="open:"]');
+  const url = el && LINKS[el.dataset.act!.slice(5)];
+  if (url) window.open(url, '_blank', 'noopener');
 });
 
 // --- Tabs: four faces of the same session.

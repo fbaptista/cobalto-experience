@@ -100,15 +100,6 @@ footer {
   box-shadow: inset 0 2px 0 var(--cobalt);
 }
 
-#tabs .ai {
-  margin-left: 0.4em;
-  padding: 0 0.4em;
-  border-radius: 0.3em;
-  font-size: 0.85em;
-  color: #04102a;
-  background: var(--pink);
-}
-
 #tabs .spacer {
   flex: 1;
 }
