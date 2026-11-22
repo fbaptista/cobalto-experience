@@ -323,7 +323,10 @@ export class App {
     if (narrow) {
       this.onKeys(
         p.bare
-          ? [{ key: 'Enter', label: 'Start the session' }]
+          ? [
+              { key: 'Enter', label: 'Start the session' },
+              { key: 'F12', label: 'Install' },
+            ]
           : [
               ...(p.fkeys?.(this.ctx) ?? []),
               { key: 'F3', label: p.id === 'menu' ? 'Exit' : 'Back' },
@@ -428,6 +431,9 @@ export class App {
     }
     if (this.face !== 'terminal') return this.pressFace(key);
     if (this.current.bare) {
+      // The logon screen has no function keys, but install and help open from it.
+      if (key === 'F12') return this.go('install');
+      if (key === 'F1') return this.go('help');
       this.current.key?.(key, this.ctx);
       return;
     }
