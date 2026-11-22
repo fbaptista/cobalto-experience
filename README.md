@@ -6,6 +6,8 @@ The same session has four faces. The tab bar changes the view without changing t
 
 Some of what the session shows is a vision, not what ships today. The Cobalto repository says what is verified.
 
+Live at <https://fbaptista.github.io/cobalto-experience/>. Every push to `main` deploys it with GitHub Pages.
+
 ## Run it
 
 ```bash
