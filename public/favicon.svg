@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Cobalto">
+  <g transform="translate(0 0)">
+    <rect x="16" y="16" width="224" height="224" rx="52" fill="#1A52D6"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round">
+      <path d="M134.9 172 A56 56 0 1 1 134.9 100"/>
+      <circle cx="186" cy="164" r="32"/>
+    </g>
+  </g>
+</svg>

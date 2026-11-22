@@ -1,0 +1,290 @@
+:root {
+  --cobalt: #2f6bff;
+  --cobalt-deep: #0b3fa8;
+  --bg: #040915;
+  --glass: #060d20;
+  --blue: #6f9bff;
+  --green: #46e08a;
+  --white: #eef3ff;
+  --yellow: #ffd866;
+  --red: #ff6464;
+  --turq: #58dbe6;
+  --pink: #ff8fd2;
+  --dim: #51618a;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 35%, #0c1a3d 0%, #050a18 55%, #02040a 100%) fixed;
+  color: var(--white);
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+footer {
+  padding: 4px 12px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  color: #3d4a6b;
+}
+
+/* --- Monitor. Every size is in em of its font, which main.ts scales. */
+#monitor {
+  font-size: 16px;
+  padding: 1em;
+  border-radius: 1.6em;
+  background: linear-gradient(160deg, #1b2236 0%, #0e1322 45%, #090d18 100%);
+  box-shadow:
+    0 0 0 1px #2a3350,
+    0 1.5em 4em rgba(0, 0, 0, 0.7),
+    0 0 6em rgba(47, 107, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#tabs {
+  height: 2.4em;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3em;
+  padding: 0 0.6em;
+}
+
+#tabs button {
+  font: inherit;
+  font-size: 0.8em;
+  height: 2.2em;
+  padding: 0 1.1em;
+  color: #8793b5;
+  background: #121829;
+  border: 1px solid #232b45;
+  border-bottom: none;
+  border-radius: 0.6em 0.6em 0 0;
+  cursor: pointer;
+}
+
+#tabs button:hover {
+  color: var(--white);
+}
+
+#tabs button:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: -2px;
+}
+
+#tabs button.on {
+  color: var(--white);
+  background: var(--glass);
+  border-color: var(--cobalt);
+  box-shadow: inset 0 2px 0 var(--cobalt);
+}
+
+#tabs .ai {
+  margin-left: 0.4em;
+  padding: 0 0.4em;
+  border-radius: 0.3em;
+  font-size: 0.85em;
+  color: #04102a;
+  background: var(--pink);
+}
+
+#tabs .spacer {
+  flex: 1;
+}
+
+#tab-note {
+  align-self: center;
+  margin-left: 0.8em;
+  font-size: 0.75em;
+  color: var(--yellow);
+}
+
+#tabs #sound,
+#tabs #install {
+  border-radius: 0.6em;
+  border-bottom: 1px solid #232b45;
+  height: 1.9em;
+  align-self: center;
+}
+
+#tabs #sound[aria-pressed='true'] {
+  color: var(--yellow);
+}
+
+#tabs #install {
+  color: var(--white);
+  background: var(--cobalt-deep);
+  border-color: var(--cobalt);
+}
+
+#crt {
+  position: relative;
+  padding: 1.1em 1.6em;
+  border-radius: 1em;
+  background: radial-gradient(ellipse at center, #0a1634 0%, var(--glass) 62%, #03060f 100%);
+  box-shadow:
+    inset 0 0 3.5em rgba(0, 0, 0, 0.85),
+    inset 0 0 0 1px #0f1a3a;
+  overflow: hidden;
+}
+
+/* Scan lines and a soft reflection over the glass. */
+#crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, transparent 22%),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(0, 0, 0, 0.16) 3px);
+}
+
+#screen {
+  font-weight: 500;
+  line-height: 1.2em;
+  cursor: default;
+  animation: flicker 6s infinite steps(1);
+}
+
+.row {
+  height: 1.2em;
+  white-space: pre;
+}
+
+.row span {
+  text-shadow: 0 0 0.45em color-mix(in srgb, currentColor 60%, transparent);
+}
+
+.b { --c: var(--blue); color: var(--c); }
+.g { --c: var(--green); color: var(--c); }
+.w { --c: var(--white); color: var(--c); }
+.y { --c: var(--yellow); color: var(--c); }
+.r { --c: var(--red); color: var(--c); }
+.t { --c: var(--turq); color: var(--c); }
+.p { --c: var(--pink); color: var(--c); }
+.d { --c: var(--dim); color: var(--c); }
+.k { --c: var(--cobalt); color: #4f83ff; }
+.row span.x { color: #16233f; text-shadow: none; }
+
+.row span.rv {
+  background: var(--c);
+  color: #04102a;
+  text-shadow: none;
+}
+
+.row span.k.rv {
+  color: #fff;
+}
+
+.u {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.hot {
+  cursor: pointer;
+}
+
+.hot:hover {
+  background: rgba(255, 216, 102, 0.16);
+}
+
+.cur {
+  background: var(--green);
+  box-shadow: 0 0 0.5em var(--green);
+  animation: blink 1.1s infinite steps(1);
+}
+
+@keyframes blink {
+  50% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 0.985; }
+  48% { opacity: 1; }
+  83% { opacity: 0.99; }
+}
+
+#badge {
+  height: 1.9em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding-top: 0.5em;
+  font-size: 1em;
+  color: #6b7594;
+}
+
+#badge span {
+  font-size: 0.7em;
+  letter-spacing: 0.35em;
+}
+
+#badge img {
+  height: 1.1em;
+}
+
+#badge .led {
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: 0.6em;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0.6em var(--green);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #screen,
+  .cur {
+    animation: none;
+  }
+}
+
+/* --- The other faces of the session: a flatter, modern screen. */
+.s0 { background: #0d1220; }
+.s1 { background: #111a30; }
+.s2 { background: var(--cobalt-deep); }
+.hl { background: rgba(255, 216, 102, 0.2); }
+.cov { background: rgba(70, 224, 138, 0.13); }
+.miss { background: rgba(255, 100, 100, 0.16); }
+
+body[data-face]:not([data-face='terminal']) #crt {
+  background: #0a0f1c;
+}
+
+body[data-face]:not([data-face='terminal']) #crt::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 18%);
+}
+
+body[data-face]:not([data-face='terminal']) #screen {
+  animation: none;
+}
+
+body[data-face]:not([data-face='terminal']) .row span {
+  text-shadow: none;
+}
