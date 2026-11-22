@@ -55,6 +55,7 @@ export const logon: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     s.fill(0, 0, s.cols, '-', 'b');
     s.center(0, '  COBALTO - SESSION LOGON  ', 'w');
@@ -85,3 +86,43 @@ export const logon: Panel = {
     return false;
   },
 };
+
+// --- 40 columns.
+const SMALL: Record<string, string[]> = {
+  C: ['████', '█   ', '█   ', '█   ', '████'],
+  O: ['████', '█  █', '█  █', '█  █', '████'],
+  B: ['███ ', '█  █', '███ ', '█  █', '███ '],
+  A: ['████', '█  █', '████', '█  █', '█  █'],
+  L: ['█   ', '█   ', '█   ', '█   ', '████'],
+  T: ['████', ' ██ ', ' ██ ', ' ██ ', ' ██ '],
+};
+const SMALL_BANNER = [0, 1, 2, 3, 4].map((row) =>
+  Array.from('COBALTO')
+    .map((c) => SMALL[c][row])
+    .join(' '),
+);
+const SMALL_BOOT = ['COBALTO SESSION MANAGER', 'TERMINAL CONNECTED  LU=CBLT0001', 'CODE BASE ATTACHED  7 PROGRAMS'];
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  s.fill(0, 0, s.cols, '-', 'b');
+  s.center(0, ' SESSION LOGON ', 'w');
+  for (let i = 0; i < bootLines; i++) s.put(2 + i, 1, SMALL_BOOT[i], 'd');
+  for (let i = 0; i < banner; i++) s.center(7 + i, SMALL_BANNER[i], 'k');
+  if (banner === BANNER.length) {
+    s.center(14, 'Unit testing, debugging', 'w');
+    s.center(15, 'and AI for COBOL', 'w');
+    s.center(17, 'The COBOL you have always run,', 'b');
+    s.center(18, 'with the tools of today', 'b');
+  }
+  if (ready) {
+    s.put(22, 7, 'Userid  ===> ', 'b');
+    s.put(22, 20, 'GUEST   ', 'g u');
+    s.put(23, 7, 'Program ===> ', 'b');
+    s.put(23, 20, 'LOANCALC', 'g u');
+    s.cursor(22, 25);
+    s.center(27, ' Tap to start the session ', 'y', 'key:Enter');
+    s.center(31, 'No account, no form.', 'd');
+    s.center(32, 'This site is a session of Cobalto.', 'd');
+  }
+}

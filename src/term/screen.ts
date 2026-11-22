@@ -116,3 +116,16 @@ export function wrap(text: string, width: number): string[] {
   if (line) out.push(line);
   return out;
 }
+
+/** Halves the indentation of a line of code, for the 40-column grid. */
+export function narrowCode(text: string): string {
+  const indent = text.length - text.trimStart().length;
+  return ' '.repeat(Math.floor(indent / 2)) + text.trimStart();
+}
+
+/** Wraps a line of code, keeping its indentation and indenting what continues. */
+export function wrapCode(text: string, width: number): string[] {
+  if (text.length <= width) return [text];
+  const indent = text.length - text.trimStart().length;
+  return wrap(text.trim(), width - indent - 2).map((part, i) => ' '.repeat(indent + (i ? 2 : 0)) + part);
+}

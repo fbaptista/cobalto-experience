@@ -70,3 +70,25 @@ export function totals(story: Story): { passed: number; failed: number } {
   const o = outcomes(story);
   return { passed: o.filter(Boolean).length, failed: o.filter((x) => !x).length };
 }
+
+/** Splits a line that does not fit in `width` into several, at spaces when it can. */
+export function wrapLine(line: Line, width: number): Line[] {
+  const cells: Seg[] = line.segs.flatMap(([text, cls]) => Array.from(text).map((ch): Seg => [ch, cls]));
+  const out: Line[] = [];
+  let start = 0;
+  while (cells.length - start > width) {
+    let cut = start + width;
+    for (let i = cut; i > start + width / 2; i--) {
+      if (cells[i][0] === ' ') {
+        cut = i;
+        break;
+      }
+    }
+    out.push({ segs: cells.slice(start, cut), bg: line.bg });
+    start = cells[cut]?.[0] === ' ' ? cut + 1 : cut;
+    // What continues is indented under the text of the first row.
+    cells.splice(start, 0, [' ', ''], [' ', '']);
+  }
+  out.push({ segs: cells.slice(start), bg: line.bg });
+  return out;
+}

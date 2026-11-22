@@ -1,5 +1,5 @@
 import type { Ctx, Panel } from '../app';
-import { wrap } from '../term/screen';
+import { narrowCode, wrap, wrapCode } from '../term/screen';
 import { DRAFTS, DRAFT_WARNING, type Draft } from '../story/generate';
 
 const LEFT_WIDTH = 57;
@@ -49,11 +49,14 @@ async function start(ctx: Ctx, draft: Draft): Promise<void> {
     for (const c of round.cases) {
       const lines = [
         { text: `TESTCASE '${c.name}'`, cls: 't' },
-        ...(c.review ? wrap(`* REVIEW: ${c.review}`, LEFT_WIDTH - 4).map((t) => ({ text: `    ${t}`, cls: 'p' })) : []),
+        ...(c.review ? wrap(`* REVIEW: ${c.review}`, ctx.narrow ? 200 : LEFT_WIDTH - 4).map((t) => ({ text: `    ${t}`, cls: 'p' })) : []),
         ...c.body.map((t) => ({ text: `    ${t}`, cls: t.startsWith('EXPECT') || t.startsWith('VERIFY') ? 'w' : 'g' })),
         { text: '', cls: 'g' },
       ];
-      for (const line of lines) {
+      const fitted = ctx.narrow
+        ? lines.flatMap((l) => wrapCode(narrowCode(l.text), ctx.s.cols - 2).map((text) => ({ text, cls: l.cls })))
+        : lines;
+      for (const line of fitted) {
         push(line.text, line.cls);
         ctx.sound.tick();
         ctx.redraw();
@@ -74,7 +77,7 @@ async function start(ctx: Ctx, draft: Draft): Promise<void> {
       ctx.redraw();
       await run.sleep(40);
     }
-    for (const line of wrap(`>> round ${i + 1}: ${round.feedback}`, LEFT_WIDTH)) push(line, 'b');
+    for (const line of wrap(`>> round ${i + 1}: ${round.feedback}`, ctx.narrow ? ctx.s.cols - 2 : LEFT_WIDTH)) push(line, 'b');
     push('', 'g');
     ctx.redraw();
     await run.sleep(500);
@@ -106,6 +109,7 @@ export const generatePanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     const draft = DRAFTS[sel];
@@ -198,3 +202,60 @@ export const generatePanel: Panel = {
     return false;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const width = s.cols - 2;
+  const draft = DRAFTS[sel];
+
+  if (phase === 'pick') {
+    let row = top + 1;
+    for (const line of wrap('Pick a program. The model proposes cases, Cobalto runs them, and what failed goes back to the model.', width)) {
+      s.put(row++, 1, line, 'b');
+    }
+    row++;
+    DRAFTS.forEach((d, i) => {
+      const act = `p:pick:${i}`;
+      s.put(row, 1, i === sel ? '=>' : '  ', 'y');
+      s.put(row, 4, ` ${d.program.padEnd(9)}`, i === sel ? 'w rv' : 'w', act);
+      s.put(row + 1, 5, d.about.slice(0, width - 4), 'g', act);
+      row += 3;
+    });
+    s.put(row, 1, ' AI ', 'p rv');
+    for (const line of wrap('What comes out is a draft: what the program does today, for a person to review.', width)) s.put(++row, 1, line, 'p');
+    return;
+  }
+
+  s.put(top, 1, '> ', 'b');
+  s.put(top, 3, typed.slice(0, width - 2), 'w');
+  s.right(top + 1, ' AI DRAFT ', 'p rv');
+  const rows = 15;
+  stream.slice(-rows).forEach((line, i) => s.put(top + 3 + i, 1, line.text.slice(0, width), line.cls));
+
+  rounds.forEach((view, i) => {
+    const round = draft.rounds[i];
+    const row = top + 19 + i;
+    s.put(row, 1, `R${i + 1}`, 'w');
+    if (view.stage === 'asking') s.put(row, 4, 'asking the model', 'p');
+    else if (view.stage === 'writing') s.put(row, 4, `${view.proposed} cases`, 'p');
+    else if (view.stage === 'compiling' || view.stage === 'running') s.put(row, 4, view.stage, 'y');
+    else {
+      let col = s.put(row, 4, `${round.cases.length} cases`, 'p');
+      col = s.put(row, col + 2, `${round.passed} pass`, 'g');
+      col = s.put(row, col + 1, `${round.failed} fail`, round.failed ? 'r' : 'd');
+      s.right(row, `${i === rounds.length - 1 ? coverage : round.coverage}%`, 'w');
+    }
+  });
+  if (rounds.length) {
+    const bar = width - 5;
+    const on = Math.round((coverage / 100) * bar);
+    s.put(top + 23, 1, '█'.repeat(on), 'g');
+    s.put(top + 23, 1 + on, '█'.repeat(bar - on), 'x');
+    s.right(top + 23, `${coverage}%`, 'w');
+  }
+  if (phase === 'done') {
+    s.put(top + 25, 1, ` ${DRAFT_WARNING} `, 'y rv');
+    wrap(`Saved as tests/${draft.program}.ai.cblt. Sent to the model: build/ai/`, width).forEach((line, i) => s.put(top + 26 + i, 1, line, 'b'));
+  }
+}

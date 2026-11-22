@@ -25,6 +25,6 @@ npm run dev
 
 ## Status
 
-Done: the terminal renderer, the logon screen, the main menu, the seven panels and the four faces. Not done yet: the 40-column layout for phones.
+Done: the terminal renderer, the logon screen, the main menu, the seven panels and the four faces, on an 80-column grid and, on a screen as narrow as a phone, on a 40-column grid with the function keys as buttons.
 
 Programs, data and figures are made up for the story. IBM, Micro Focus, VSI and VS Code are trademarks of their respective owners, named only to identify compatibility.

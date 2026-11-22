@@ -1,14 +1,15 @@
 import type { Ctx, Panel } from '../app';
+import { narrowCode, wrap, wrapCode } from '../term/screen';
 import { CASES, FAILURE, PROGRAM, SUITE, coverage, lineOf, source } from '../story/loancalc';
 
-const LIST_ROWS = 12;
+let listRows = 12;
 
 let scroll = 0;
 let fill = 0; // 0..1, how far the bars have filled
 let revealed = 0; // listing rows already painted with their coverage
 
 function clampScroll(total: number): void {
-  scroll = Math.max(0, Math.min(scroll, total - LIST_ROWS));
+  scroll = Math.max(0, Math.min(scroll, total - listRows));
 }
 
 export const validatePanel: Panel = {
@@ -37,7 +38,7 @@ export const validatePanel: Panel = {
         ctx.redraw();
         await run.sleep(35);
       }
-      for (let i = 1; i <= LIST_ROWS; i++) {
+      for (let i = 1; i <= listRows; i++) {
         revealed = i;
         ctx.redraw();
         await run.sleep(45);
@@ -53,6 +54,8 @@ export const validatePanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
+    listRows = 12;
     const s = ctx.s;
     const top = ctx.top;
     const fixed = ctx.story.fixed;
@@ -94,7 +97,7 @@ export const validatePanel: Panel = {
 
     const lines = source(fixed);
     clampScroll(lines.length);
-    const view = lines.slice(scroll, scroll + LIST_ROWS);
+    const view = lines.slice(scroll, scroll + listRows);
     const head = top + 10;
     s.put(head, 1, 'Line', 'b');
     s.put(head, 9, 'Hits', 'b');
@@ -120,11 +123,11 @@ export const validatePanel: Panel = {
 
   key(key: string, ctx: Ctx) {
     const step: Record<string, number> = {
-      F7: -(LIST_ROWS - 1),
-      PageUp: -(LIST_ROWS - 1),
+      F7: -(listRows - 1),
+      PageUp: -(listRows - 1),
       ArrowUp: -1,
-      F8: LIST_ROWS - 1,
-      PageDown: LIST_ROWS - 1,
+      F8: listRows - 1,
+      PageDown: listRows - 1,
       ArrowDown: 1,
     };
     if (key in step) {
@@ -139,3 +142,64 @@ export const validatePanel: Panel = {
     return false;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const width = s.cols - 2;
+  const fixed = ctx.story.fixed;
+  let row = ctx.top;
+
+  if (fixed) {
+    s.put(row, 1, ' PASSED ', 'g rv');
+    s.put(row, 11, `${CASES.length} of ${CASES.length} cases`, 'w');
+    row += 2;
+    for (const line of wrap('No failed cases. With the fix, February 29, 2000 is a valid date.', width)) s.put(row++, 1, line, 'g');
+  } else {
+    s.put(row, 1, ' FAILED ', 'r rv', 'go:debug');
+    s.put(row, 11, `case ${FAILURE.caseN}`, 'w');
+    row += 2;
+    FAILURE.snippet.forEach((line, i) => {
+      const cls = i === 0 ? 't' : i === FAILURE.snippet.length - 1 ? 'w' : 'g';
+      for (const part of wrapCode(narrowCode(line), width)) s.put(row++, 1, part, cls);
+    });
+    let col = s.put(row, 1, 'Expected', 'b');
+    col = s.put(row, col + 1, FAILURE.expected, 'g');
+    col = s.put(row, col + 3, 'Obtained', 'b');
+    s.put(row, col + 1, FAILURE.obtained, 'r');
+    row++;
+  }
+
+  row++;
+  for (const m of coverage(fixed)) {
+    const bar = 10;
+    const pct = m.covered / m.total;
+    const on = Math.round(pct * fill * bar);
+    s.put(row, 1, m.name.padEnd(11), 'b');
+    s.put(row, 12, '█'.repeat(on), m.covered === m.total ? 'g' : 'y');
+    s.put(row, 12 + on, '█'.repeat(bar - on), 'x');
+    s.put(row, 23, `${Math.floor(pct * fill * 100)}%`.padStart(4), 'w');
+    s.put(row, 29, `${Math.round(m.covered * fill)}/${m.total}`, 'd');
+    row++;
+  }
+
+  row++;
+  const lines = source(fixed);
+  listRows = ctx.bottom - row;
+  clampScroll(lines.length);
+  const view = lines.slice(scroll, scroll + listRows);
+  s.put(row, 1, 'Line Hits', 'b');
+  s.right(row, `${view[0].n}-${view[view.length - 1].n} of ${lines[lines.length - 1].n}`, 'b');
+  view.forEach((l, i) => {
+    const r = row + 1 + i;
+    const text = narrowCode(l.text).slice(0, s.cols - 10);
+    s.put(r, 1, String(l.n).padStart(3), 'b');
+    if (i >= revealed) {
+      s.put(r, 10, text, 'd');
+      return;
+    }
+    const missed = l.hits === 0;
+    const cls = l.fixed ? 't' : missed ? 'r' : l.partial ? 'y' : l.hits === null && !l.text.startsWith(' ') ? 'w' : 'g';
+    if (l.hits !== null) s.put(r, 5, String(l.hits).padStart(4), missed ? 'r rv' : l.partial ? 'y' : 'g');
+    s.put(r, 10, text, cls);
+  });
+}

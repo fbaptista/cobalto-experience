@@ -3,7 +3,8 @@ import { CALLS, PROGRAMS } from '../story/codebase';
 import { COMPILERS } from '../story/compilers';
 import { DRAFTS, DRAFT_WARNING } from '../story/generate';
 import { CASES, COMPILER, DEFECT_LINE, FAILURE, PROGRAM, SUITE, coverage, lineOf } from '../story/loancalc';
-import { BLANK, L, band, outcomes, putLine, totals, type Face, type FaceCtx, type Line } from './common';
+import type { Screen } from '../term/screen';
+import { BLANK, L, band, outcomes, putLine, totals, wrapLine, type Face, type FaceCtx, type Line } from './common';
 
 const JOBS = 1;
 const LOG = 27;
@@ -181,6 +182,7 @@ export const ci: Face = {
   render({ s, story, step, beat }: FaceCtx) {
     const v = view(step, story);
     const broken = !story.fixed;
+    if (s.cols < 80) return renderNarrow(s, v, beat, broken);
     band(s, 0, 0, s.cols, 's0');
     s.put(0, 1, 'loans  >  Pipelines  >  #128', 'w s0');
     s.right(0, 'CI', 'b s0');
@@ -219,3 +221,30 @@ export const ci: Face = {
     });
   },
 };
+
+function renderNarrow(s: Screen, v: View, beat: number, broken: boolean): void {
+  const width = s.cols - 2;
+  band(s, 0, 0, s.cols, 's0');
+  s.put(0, 1, 'loans > Pipelines > #128', 'w s0');
+  s.right(0, 'CI', 'b s0');
+  s.put(1, 1, (broken ? `Add ${SUITE}: the loan suite` : 'Century years divisible by 400').slice(0, width), 'w');
+
+  const stages: [string, Status][] = [
+    ['build', 'pass'],
+    ['test', broken ? 'fail' : 'pass'],
+    ['cov', broken ? 'skip' : 'pass'],
+    ['sonar', broken ? 'skip' : 'pass'],
+    ['matrix', broken ? 'skip' : 'warn'],
+  ];
+  let col = 1;
+  stages.forEach(([name, status], i) => {
+    const cls = status === 'pass' ? 'g rv' : status === 'fail' ? 'r rv' : status === 'warn' ? 'y rv' : 'd';
+    col = s.put(3, col, ` ${name} `, cls);
+    if (i < stages.length - 1) col = s.put(3, col, '-', 'd');
+  });
+
+  band(s, 5, 0, s.cols, 's1');
+  s.put(5, 1, v.job || 'pipeline', 'w s1');
+  const lines = [cmd(v.command), ...v.log.slice(0, beat)].flatMap((line) => wrapLine(line, width));
+  lines.slice(0, s.rows - 9).forEach((line, i) => putLine(s, 6 + i, 1, line, width));
+}

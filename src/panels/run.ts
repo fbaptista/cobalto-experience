@@ -1,4 +1,5 @@
 import type { Ctx, Panel } from '../app';
+import { wrap } from '../term/screen';
 import { CASES, COMPILER, FAILURE, PROGRAM, RUN_COMMAND, SUITE, SUITE_TITLE } from '../story/loancalc';
 
 type Mark = 'wait' | 'run' | 'pass' | 'fail';
@@ -75,6 +76,7 @@ export const runPanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     s.put(top, 1, '> ', 'b');
@@ -133,3 +135,44 @@ export const runPanel: Panel = {
     return false;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const width = s.cols - 4;
+  const shown = typed.match(new RegExp(`.{1,${width}}`, 'g')) ?? [''];
+  s.put(top, 1, '> ', 'b');
+  shown.forEach((part, i) => s.put(top + i, 3, part, 'w'));
+  if (phase === 'typing') {
+    s.cursor(top + shown.length - 1, 3 + shown[shown.length - 1].length);
+    return;
+  }
+  s.put(top + 3, 1, `Compiling ${PROGRAM}`, 'b');
+  s.put(top + 3, 21, compiled ? 'OK' : '...', compiled ? 'g' : 'y');
+  if (!compiled) return;
+  s.put(top + 4, 1, `Suite ${SUITE}`, 'w');
+
+  CASES.forEach((c, i) => {
+    const row = top + 6 + i;
+    const m = marks[i];
+    const act = m === 'fail' ? 'go:validate' : null;
+    s.put(row, 1, String(c.n).padStart(2, '0'), 'b');
+    s.put(row, 4, c.name.slice(0, 30), m === 'wait' ? 'd' : m === 'run' ? 'w' : m === 'fail' ? 'r' : 'g', act);
+    if (m === 'pass') s.put(row, 35, 'PASS', 'g');
+    else if (m === 'fail') s.put(row, 35, 'FAIL', 'r rv', act);
+    else if (m === 'run') s.put(row, 35, 'RUN', 'y');
+    else s.put(row, 35, '....', 'd');
+  });
+
+  const row = top + 7 + CASES.length;
+  let col = s.put(row, 1, `${count('pass') + count('fail')} of ${CASES.length}`, 'w');
+  col = s.put(row, col + 2, `${count('pass')} passed`, 'g');
+  s.put(row, col + 2, `${count('fail')} failed`, count('fail') ? 'r' : 'd');
+  if (phase !== 'done') return;
+  const detail = count('fail')
+    ? `Case ${FAILURE.caseN}: ${FAILURE.snippet[3].trim()}, obtained ${FAILURE.obtained}`
+    : ctx.story.fixed
+      ? 'February 29, 2000 is a valid date again. 11 of 11.'
+      : '';
+  wrap(detail, s.cols - 2).forEach((line, i) => s.put(row + 2 + i, 1, line, count('fail') ? 'r' : 'g', count('fail') ? 'go:validate' : null));
+}

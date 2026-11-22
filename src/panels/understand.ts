@@ -100,6 +100,7 @@ export const understandPanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     const base = top + 2;
@@ -190,3 +191,71 @@ export const understandPanel: Panel = {
     return true;
   },
 };
+
+/** The call tree, for the 40-column grid: one row per call. */
+function tree(): { name: string; depth: number }[] {
+  const out: { name: string; depth: number }[] = [];
+  const walk = (name: string, depth: number): void => {
+    out.push({ name, depth });
+    callees(name).forEach((c) => walk(c, depth + 1));
+  };
+  PROGRAMS.filter((p) => callers(p.name).length === 0).forEach((p) => walk(p.name, 0));
+  return out;
+}
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const current = PROGRAMS[sel];
+  s.put(top, 1, '> ', 'b');
+  s.put(top, 3, typed, 'w');
+  if (!shown) {
+    s.cursor(top, 3 + typed.length);
+    return;
+  }
+  const related = new Set([...callers(current.name), ...callees(current.name)]);
+  const items = tree();
+  items.slice(0, wired ? items.length : shown).forEach((item, i) => {
+    const row = top + 2 + i;
+    const index = PROGRAMS.findIndex((p) => p.name === item.name);
+    const p = PROGRAMS[index];
+    let col = 1 + Math.max(0, item.depth - 1) * 3;
+    if (item.depth) col = s.put(row, col, '+- ', wired && (p.name === current.name || related.has(p.name)) ? 'y' : 'd');
+    const cls = !wired ? 'g' : index === sel ? 'w rv' : related.has(p.name) ? 'y' : 'g';
+    col = s.put(row, col, `[${p.name}]`, cls, `p:sel:${index}`);
+    if (!wired) return;
+    if (p.note) s.put(row, col + 2, p.note, 'r');
+    else if (callers(p.name).length > 1) s.put(row, col + 2, `called by ${callers(p.name).length}`, 'd');
+    else if (!item.depth) s.put(row, col + 2, p.kind, 'b');
+  });
+  if (!wired) return;
+
+  let row = top + 3 + items.length;
+  s.put(row, 1, current.name, 'w');
+  s.right(row, current.kind, current.note ? 'r' : 'b');
+  row++;
+  for (const line of wrap(current.about, s.cols - 2)) s.put(row++, 1, line, 'g');
+  const facts: [string, string[]][] = [
+    ['Called by', callers(current.name)],
+    ['Calls', callees(current.name)],
+    ['Copybooks', current.copybooks],
+    ['Files', current.files],
+  ];
+  for (const [label, values] of facts) {
+    s.put(row, 1, label, 'b');
+    s.put(row++, 11, values.length ? values.join(' ').slice(0, s.cols - 12) : label === 'Called by' ? 'nobody' : '-', values.length ? 'g' : 'd');
+  }
+  s.put(row, 1, 'PARAGRAPHS', 'w');
+  s.right(row, 'performed', 'b');
+  row++;
+  const most = Math.max(...current.paragraphs.map((p) => p.performed));
+  current.paragraphs.forEach((p, i) => {
+    if (row > ctx.bottom) return;
+    const entry = i === 0;
+    const dead = !entry && p.performed === 0;
+    const hot = most > 1 && p.performed === most;
+    s.put(row, 1, p.name, dead ? 'r' : hot ? 'y' : 'g');
+    s.right(row, entry ? 'entry' : dead ? 'nobody' : hot ? `${p.performed} most` : String(p.performed), entry ? 't' : dead ? 'r' : hot ? 'y' : 'g');
+    row++;
+  });
+}

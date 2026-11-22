@@ -4,10 +4,12 @@ import { CALLS, PROGRAMS } from '../story/codebase';
 import { COMPILERS } from '../story/compilers';
 import { DRAFTS } from '../story/generate';
 import { CASES, DEFECT_LINE, FAILURE, FIX, PROGRAM, SUITE, coverage, lineOf, source } from '../story/loancalc';
-import { BLANK, L, band, outcomes, putLine, totals, type Face, type FaceCtx, type Line } from './common';
+import { BLANK, L, band, outcomes, putLine, totals, wrapLine, type Face, type FaceCtx, type Line } from './common';
 
-const WIDTH = 76;
 const ROWS = 23;
+
+/** Width of the transcript: set by render for the grid on screen. */
+let WIDTH = 76;
 
 /** What the person asks. */
 function you(text: string): Line[] {
@@ -170,10 +172,13 @@ export const agent: Face = {
   label: 'Agent',
 
   beats(step, story) {
+    WIDTH = 76;
     return script(step, story).length + 1;
   },
 
   render({ s, story, step, beat }: FaceCtx) {
+    WIDTH = s.cols - 4;
+    if (s.cols < 80) return renderNarrow({ s, story, step, beat });
     band(s, 0, 0, s.cols, 's0');
     s.put(0, 1, ' AI AGENT ', 'p rv');
     s.put(0, 13, 'An AI coding agent using Cobalto. Not a person.', 'w s0');
@@ -187,3 +192,22 @@ export const agent: Face = {
     s.put(26, 4, 'Ask the agent about this code base', 'd s1');
   },
 };
+
+function renderNarrow({ s, story, step, beat }: FaceCtx): void {
+  const width = s.cols - 2;
+  band(s, 0, 0, s.cols, 's0');
+  s.put(0, 1, ' AI AGENT ', 'p rv');
+  s.put(0, 13, 'Not a person.', 'w s0');
+  s.put(1, 1, 'An AI coding agent using Cobalto.', 'd');
+  // Beats count the lines of the wide transcript, so that the pace is the same.
+  WIDTH = 76;
+  const total = script(step, story).length;
+  WIDTH = s.cols - 4;
+  const all = script(step, story).flatMap((line) => wrapLine({ ...line, segs: line.segs.map(([t, c]) => [t.replace(/^ {6,8}/, '  '), c]) }, width));
+  const lines = all.slice(0, Math.ceil((all.length * Math.min(beat, total)) / total));
+  const rows = s.rows - 7;
+  lines.slice(-rows).forEach((line, i) => putLine(s, 3 + i, 1, line, width));
+  band(s, s.rows - 4, 0, s.cols, 's1');
+  s.put(s.rows - 4, 1, '>', 'p s1');
+  s.put(s.rows - 4, 3, 'Ask the agent', 'd s1');
+}

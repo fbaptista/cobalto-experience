@@ -1,5 +1,5 @@
 import type { Ctx, Panel } from '../app';
-import { wrap } from '../term/screen';
+import { narrowCode, wrap } from '../term/screen';
 import {
   CASES,
   DEBUG_INTRO,
@@ -113,6 +113,7 @@ export const debugPanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     const lines = source(phase === 'fixed');
@@ -196,3 +197,50 @@ export const debugPanel: Panel = {
     return false;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const rows = 10;
+  const width = s.cols - 7;
+  const lines = source(phase === 'fixed');
+  const current = phase === 'stepping' ? DEBUG_TRACE[at].line : DEFECT_LINE;
+  const stack = phase === 'stepping' ? DEBUG_TRACE[at].stack : DEBUG_TRACE[DEBUG_TRACE.length - 1].stack;
+
+  s.put(top, 1, `${PROGRAM}.cbl`, 'w');
+  s.right(top, `case ${FAILURE.caseN}`, 'b');
+  const idx = lines.findIndex((l) => l.n === current);
+  const first = Math.max(0, Math.min(idx - 4, lines.length - rows));
+  lines.slice(first, first + rows).forEach((l, i) => {
+    const row = top + 1 + i;
+    const isDefect = l.n in FIX;
+    const text = narrowCode(typing.get(l.n) ?? l.text).slice(0, width);
+    s.put(row, 0, String(l.n).padStart(3), 'b');
+    if (typing.has(l.n)) {
+      s.put(row, 4, '+', 't');
+      s.put(row, 7, text, 't');
+      if (phase === 'fixing') s.cursor(row, Math.min(s.cols - 1, 7 + text.length));
+    } else if (phase === 'stepping' && l.n === current) {
+      s.put(row, 4, '=>', 'y');
+      s.put(row, 7, text.padEnd(width), 'k rv');
+    } else if (isDefect && phase === 'found') {
+      s.put(row, 4, '**', 'r');
+      s.put(row, 7, text.padEnd(width), 'r rv');
+    } else if (!(isDefect && phase === 'fixing')) {
+      if (l.fixed) s.put(row, 4, '+', 't');
+      s.put(row, 7, text, l.fixed ? 't' : l.hits === null && !l.text.startsWith(' ') ? 'w' : 'g');
+    }
+  });
+
+  s.put(top + 12, 1, 'WATCH', 'w');
+  if (phase !== 'fixed') s.right(top + 12, stack[stack.length - 1], 't');
+  WATCH.forEach((f, i) => {
+    const row = top + 13 + i;
+    const value = values.get(f.name) ?? f.value;
+    const cls = phase === 'fixed' ? 'd' : alarms.has(f.name) ? 'r rv' : changed.has(f.name) ? 'y rv' : 'g';
+    s.put(row, 1, f.name, 'b');
+    s.right(row, ` ${value} `, cls, null, 0);
+  });
+
+  wrap(note, s.cols - 2).slice(0, 4).forEach((line, i) => s.put(top + 24 + i, 1, line, noteCls));
+}

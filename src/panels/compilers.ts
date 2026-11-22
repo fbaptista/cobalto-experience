@@ -60,6 +60,7 @@ export const compilersPanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     s.put(top, 1, 'Case', 'b');
@@ -125,3 +126,49 @@ export const compilersPanel: Panel = {
     return true;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const width = s.cols - 2;
+  const cell = [21, 26, 31, 36];
+  s.put(top, 1, 'Case', 'b');
+  COMPILERS.forEach((c, k) => s.put(top, cell[k], c.short.padEnd(4), k === sel ? 'w rv' : 'w', `p:sel:${k}`));
+
+  CASES.forEach((c, i) => {
+    const row = top + 1 + i;
+    s.put(row, 1, String(c.n).padStart(2, '0'), 'b');
+    s.put(row, 4, c.name.slice(0, 16), marks[sel]?.[i] === 'fail' ? 'r' : 'g');
+    COMPILERS.forEach((_, k) => {
+      const m = marks[k]?.[i] ?? 'wait';
+      if (m === 'pass') s.put(row, cell[k], 'PASS', 'g', `p:sel:${k}`);
+      else if (m === 'fail') s.put(row, cell[k], 'FAIL', 'r rv', `p:sel:${k}`);
+      else if (m === 'run') s.put(row, cell[k], 'RUN', 'y');
+      else s.put(row, cell[k], '....', 'd');
+    });
+  });
+
+  const totals = top + 2 + CASES.length;
+  s.put(totals, 1, 'Passed', 'b');
+  COMPILERS.forEach((_, k) => {
+    const done = marks[k]?.every((m) => m === 'pass' || m === 'fail');
+    if (done) s.put(totals, cell[k], String(passed(k)), passed(k) === CASES.length ? 'g' : 'r');
+  });
+
+  const c = COMPILERS[sel];
+  let row = totals + 2;
+  s.put(row++, 1, c.name, 'w');
+  const col = s.put(row, 1, c.platform, 'b');
+  s.put(row++, col + 2, `--profile ${c.profile}`.slice(0, width - col), 'd');
+  if (busy && marks[sel]?.some((m) => m === 'wait' || m === 'run')) return;
+
+  const defect = !ctx.story.fixed;
+  if (!c.failures.length) s.put(row++, 1, defect ? 'Same results as the others.' : 'Every case passes.', 'g');
+  for (const f of c.failures) {
+    s.put(row, 1, String(f.caseN).padStart(2, '0'), 'r');
+    s.put(row++, 4, `${f.obtained}, expected ${f.expect.split(' ').pop()}`, 'r');
+    for (const line of wrap(f.why, width - 3)) s.put(row++, 4, line, 'b');
+  }
+  const note = c.failures.length ? DIALECT_NOTE : defect ? DEFECT_NOTE : '';
+  wrap(note, width).slice(0, ctx.bottom - row + 1).forEach((line, i) => s.put(row + i, 1, line, 't'));
+}

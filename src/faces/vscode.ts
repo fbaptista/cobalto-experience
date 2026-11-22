@@ -17,7 +17,8 @@ import {
   lineOf,
   source,
 } from '../story/loancalc';
-import { BLANK, L, LB, band, outcomes, putLine, totals, type Face, type FaceCtx, type Line } from './common';
+import type { Screen } from '../term/screen';
+import { BLANK, L, LB, band, outcomes, putLine, totals, wrapLine, type Face, type FaceCtx, type Line } from './common';
 
 const SIDE = 2;
 const SIDE_WIDTH = 26;
@@ -316,6 +317,7 @@ export const vscode: Face = {
   render({ s, story, step, beat }: FaceCtx) {
     const v = view(step, story);
     const { passed, failed } = totals(story);
+    if (s.cols < 80) return renderNarrow(s, v, beat, `Cobalto: ${passed} passed, ${failed} failed`);
     band(s, 0, 0, s.cols, 's0');
     s.center(0, 'loans - Cobalto for VS Code', 'd s0');
     for (let r = 1; r <= 26; r++) {
@@ -347,3 +349,32 @@ export const vscode: Face = {
     s.right(27, `${COMPILER}   COBOL`, 'w s2');
   },
 };
+
+/** 40 columns: the editor on top, the side bar under it, then the panel. */
+function renderNarrow(s: Screen, v: View, beat: number, status: string): void {
+  const editorRows = 14;
+  const sideRows = 12;
+  band(s, 0, 0, s.cols, 's0');
+  s.center(0, 'Cobalto for VS Code', 'd s0');
+  s.put(1, 1, v.tab.slice(0, s.cols - 2), 'w');
+  v.editor.slice(0, editorRows).forEach((line, i) => {
+    if (i < beat) putLine(s, 2 + i, 0, line, s.cols);
+  });
+  const sideTop = 2 + editorRows;
+  band(s, sideTop, 0, s.cols, 's0');
+  s.put(sideTop, 1, v.sideTitle, 'b s0');
+  for (let r = 0; r < sideRows; r++) band(s, sideTop + 1 + r, 0, s.cols, 's1');
+  // The end of a long tree matters most: that is where the failing case is.
+  (v.sideTitle === 'TESTING' ? v.side.slice(-sideRows) : v.side.slice(0, sideRows)).forEach((line, i) => {
+    if (i < beat) putLine(s, sideTop + 1 + i, 1, line, s.cols - 2, 's1');
+  });
+  const panelTop = sideTop + 1 + sideRows;
+  band(s, panelTop, 0, s.cols, 's0');
+  s.put(panelTop, 1, v.panelTitle, 'w s0');
+  v.panel
+    .flatMap((line) => wrapLine(line, s.cols - 2))
+    .slice(0, 2)
+    .forEach((line, i) => putLine(s, panelTop + 1 + i, 1, line, s.cols - 2));
+  band(s, panelTop + 3, 0, s.cols, 's2');
+  s.put(panelTop + 3, 1, status, 'w s2');
+}

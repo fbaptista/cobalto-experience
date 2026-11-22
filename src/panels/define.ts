@@ -1,4 +1,5 @@
 import type { Ctx, Panel } from '../app';
+import { wrap } from '../term/screen';
 import { DEFINE_NOTES, DEFINITIONS } from '../story/define';
 
 const COLS = [1, 41];
@@ -31,6 +32,7 @@ export const definePanel: Panel = {
   },
 
   render(ctx: Ctx) {
+    if (ctx.narrow) return renderNarrow(ctx);
     const s = ctx.s;
     const top = ctx.top;
     for (let r = top; r <= top + RESULT_ROW + 1; r++) s.put(r, 39, '|', 'd');
@@ -77,3 +79,36 @@ export const definePanel: Panel = {
     return true;
   },
 };
+
+function renderNarrow(ctx: Ctx): void {
+  const s = ctx.s;
+  const top = ctx.top;
+  const def = DEFINITIONS[side];
+  const expected = def.choices[choice[side]];
+  const pass = expected === def.actual;
+  s.put(top, 1, ` ${def.title} `, 'w rv');
+  s.right(top, `${side + 1} of ${DEFINITIONS.length}`, 'b');
+  s.put(top + 1, 1, def.about, 'b');
+
+  def.lines.forEach((line, n) => {
+    const row = top + 3 + n;
+    const mark = line.indexOf('{}');
+    const cls = line.startsWith('TESTCASE') ? 't' : line.includes('EXPECT') || mark >= 0 ? 'w' : 'g';
+    if (mark < 0) {
+      s.put(row, 1, line, cls);
+      return;
+    }
+    const next = s.put(row, 1, line.slice(0, mark), cls);
+    s.put(row, next, ` ${expected} `, 'y rv', `p:cycle:${side}`);
+  });
+
+  let row = top + 4 + def.lines.length;
+  const c = s.put(row, 1, 'Program gives ', 'b');
+  s.put(row, c, def.actual, 'g');
+  const after = s.put(row + 1, 1, pass ? ' PASS ' : ' FAIL ', pass ? 'g rv' : 'r rv');
+  if (!pass) s.put(row + 1, after + 1, `expected ${expected}`, 'r');
+  row += 3;
+  for (const line of wrap(DEFINE_NOTES[side], s.cols - 2)) s.put(row++, 1, line, 'b');
+  row++;
+  for (const line of wrap('Tap the yellow value to change what the case expects.', s.cols - 2)) s.put(row++, 1, line, 't');
+}
